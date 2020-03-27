@@ -266,3 +266,71 @@ Vue.prototype.$broadcast = function(eventName, value) {
     }
 </script>
 ```
+
+### 属性传递
+
+```vue
+<!-- Parent.vue -->
+<template>
+	<Son2 name="张三" age="10" address="西安" @son="son"></Son2>
+</template>
+<script>
+  import Son2 from './Son2'
+	export default {
+		components: {
+			Son2
+    },
+		data(){
+			return {}
+  	},
+		methods: {
+			son(){
+				console.log('有人点我')
+  	  }
+  	}
+  },
+	
+</script>
+
+
+<!-- Son2.vue -->
+<template>
+	<div>
+		儿子二 {{$attrs}} {{$listeners}}
+		<!-- v-bind="$attrs" 传递所有属性  v-on="$listeners" 传递所有方法 -->
+		<Grandson2 v-bind="$attrs" v-on="$listeners"></Grandson2>
+  </div>
+</template>
+<script>
+  import Grandson2 from './Grandson2'
+	export default {
+		components: {
+			Grandson2
+    },
+		inheritAttrs: false,
+		data(){
+			return {}
+  	},
+		methods: {
+			son(){
+				console.log('有人点我')
+  	  }
+  	}
+  },
+</script>
+
+<!-- Grandson2.vue -->
+<template>
+	<div>
+		孙子二 {{$attrs}}
+  </div>
+</template>
+<script>
+	export default {
+		mounted(){
+			this.$listeners.son()
+    }
+  }
+</script>
+```
+
