@@ -280,6 +280,10 @@ Vue.prototype.$broadcast = function(eventName, value) {
 		components: {
 			Son2
     },
+		// 希望数据被子组件公用，不希望传递来传递去；可以通过数据注入直接把父组件注入进去（provide）
+		provide(){
+			return {parent: this}
+    },
 		data(){
 			return {}
   	},
@@ -327,6 +331,9 @@ Vue.prototype.$broadcast = function(eventName, value) {
 </template>
 <script>
 	export default {
+		inject: [
+			'parent'  // this.parent：父组件的实例
+    ],
 		mounted(){
 			this.$listeners.son()
     }
