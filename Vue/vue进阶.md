@@ -311,7 +311,7 @@ Vue.prototype.$broadcast = function(eventName, value) {
 		components: {
 			Grandson2
     },
-		inheritAttrs: false,
+		inheritAttrs: false,	// 表示不把当前父组件传递的属性挂载在自己的DOM元素上
 		data(){
 			return {}
   	},
@@ -338,6 +338,42 @@ Vue.prototype.$broadcast = function(eventName, value) {
 			this.$listeners.son()
     }
   }
+</script>
+```
+
+### eventBus
+
+> eventBus 的缺陷：eventBus 定义到全局上，加入一个组件发送了事件，同名的会全部触发，不管是子组件还是父组件，都会触发
+
+`main.js`
+
+```js
+Vue.prototype.$bus = new Vue();	// $on $emit
+```
+
+```vue
+<!-- Son2.vue -->
+<script>
+	export default {
+		mounted(){
+			this.$bus.$on('come', function(){
+				console.log('事件被触发了')
+      })
+    }
+  }
+</script>
+
+
+<!-- Grandson1.vue -->
+<script>
+export default {
+  mounted(){
+		// this.$bus.$emit('come', 'xxxxxx') // 直接这样写不生效，父子组件挂载顺序问题
+		this.$nextTick(() => {
+			this.$bus.$emit('come', 'xxxxxx')
+    })
+  }
+}
 </script>
 ```
 
