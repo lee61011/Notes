@@ -35,7 +35,7 @@ export default {
 
 `components/LevelFunctional.js`
 
-```js
+```jsx
 /* 函数式组件  没有模板  必须要有一个 render 函数 */
 export default {
   render(h) {		// h 等同于 createElement
@@ -51,7 +51,138 @@ export default {
     }, [h('span', {}, '你好')])		// 参数数组表示 子元素
   }
 }
+
+/* 上面的写法比较麻烦，可以使用下面的方法 */
+export default {
+    props: {
+        t: {}	// 父组件传递过来的 表示 h几
+    },
+    render(h){
+        // <h1 on-click={()=>{alert(1)}} style={{color: 'red'}}>你好</h1>
+        let tag = 'h' + this.t
+        return <tag>{ this.$slots.default }</tag>
+    }
+}
 ```
+
+
+
+如 `List.vue` 所示，如果后期需求变更，不使用 li 标签，改成 span 标签，这样使用模板来做就很不灵活了
+
+`App.vue`
+
+```vue
+<template>
+	<div>
+        <List :data="['香蕉','苹果','橘子']"></List>
+    </div>
+</template>
+<script>
+import List from './components/List'
+export default {
+    components: {
+        List
+    }
+}
+</script>
+```
+
+`components/List.vue`
+
+```vue
+<template>
+	<div>
+        <template v-for="(item, index) in data">
+			<li :key="index">{{item}}</li>
+		</template>
+    </div>
+</template>
+
+<script>
+export default {
+    props: {
+        data: {
+            type: Array,
+            default: () => []
+        }
+    }
+}
+</script>
+```
+
+可以在父组件中通过 render 方法来处理
+
+```vue
+<!-- App.vue -->
+<template>
+	<div>
+        <List :data="['香蕉','苹果','橘子']" :render="render"></List>
+    </div>
+</template>
+<script>
+import List from './component/List'
+export default {
+    components: {
+		List  
+    },
+    methods: {
+        render(h,data) {
+            // data 是函数式组件在 list 组件中每次循环出来的结果
+            return <span>{data}</span>
+        }
+    }
+}
+</script>
+
+
+<!-- List.vue -->
+<template>
+	<div>
+        <template v-for="(item, index) in data">
+            <!-- 判断父组件有没有传递render，没有默认使用 li 渲染 -->
+            <li :key="index" v-if="!render">{{item}}</li>
+		   <ListItem v-else :key="`a${index}`" :render="render" :item="item"></ListItem>
+		</template>
+    </div>
+</template>
+<script>
+import ListItem form './ListItem'
+export default {
+    components: {
+        ListItem
+    },
+    props: {
+        render: {
+            type: Function
+        },
+        data: {
+            type: Array,
+            default: () => []
+        }
+    }
+}
+</script>
+```
+
+```jsx
+/* components/ListItem.js */
+export default {
+    props: {
+        render: {
+            type: Function
+        },
+        item: {
+            type: String
+        }
+    },
+    render(h){
+        // 返回的是 App.vue 组件的 render
+        return this.render(h, this.item)
+    }
+}
+```
+
+
 
 
 
