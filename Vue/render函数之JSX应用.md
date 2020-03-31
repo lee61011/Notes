@@ -116,14 +116,19 @@ export default {
 <!-- App.vue -->
 <template>
 	<div>
-        <List :data="['香蕉','苹果','橘子']" :render="render"></List>
-    </div>
+		<List :data="['香蕉','苹果','橘子']" :render="render"></List>
+                      
+		<!-- element-ui  scope-slot  作用域插槽 -->		
+		<List1></List1>
+  </div>
 </template>
 <script>
 import List from './component/List'
+import List1 from './component/List1'
 export default {
     components: {
-		List  
+			List,
+			List1
     },
     methods: {
         render(h,data) {
@@ -162,6 +167,9 @@ export default {
     }
 }
 </script>
+
+
+<!-- List1.vue -->
 ```
 
 ```jsx
