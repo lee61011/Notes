@@ -119,7 +119,11 @@ export default {
 		<List :data="['香蕉','苹果','橘子']" :render="render"></List>
                       
 		<!-- element-ui  scope-slot  作用域插槽 -->		
-		<List1></List1>
+		<List1 :data="['香蕉', '苹果', '橘子']">
+    		<template v-slot="{item, a}">
+				<li>{{item}} {{a}}</li>
+			</template>
+    	</List1>
   </div>
 </template>
 <script>
@@ -170,6 +174,30 @@ export default {
 
 
 <!-- List1.vue -->
+<template>
+	<div>
+        <template v-for="(item, index) in data">
+            <slot :item="item" :a="1"></slot>
+		</template>
+    </div>
+</template>
+<script>
+import ListItem form './ListItem'
+export default {
+    components: {
+        ListItem
+    },
+    props: {
+        render: {
+            type: Function
+        },
+        data: {
+            type: Array,
+            default: () => []
+        }
+    }
+}
+</script>
 ```
 
 ```jsx
