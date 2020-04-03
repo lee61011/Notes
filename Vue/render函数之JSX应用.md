@@ -55,7 +55,7 @@ export default {
 /* 上面的写法比较麻烦，可以使用下面的方法 */
 export default {
     props: {
-        t: {}	// 父组件传递过来的 表示 h几
+        t: {}	// 父组件传递过来的 表示 h 几
     },
     render(h){
         // <h1 on-click={()=>{alert(1)}} style={{color: 'red'}}>你好</h1>
@@ -150,8 +150,8 @@ export default {
         <template v-for="(item, index) in data">
             <!-- 判断父组件有没有传递render，没有默认使用 li 渲染 -->
             <li :key="index" v-if="!render">{{item}}</li>
-		   <ListItem v-else :key="`a${index}`" :render="render" :item="item"></ListItem>
-		</template>
+		   		<ListItem v-else :key="`a${index}`" :render="render" :item="item"></ListItem>
+			</template>
     </div>
 </template>
 <script>
@@ -178,7 +178,7 @@ export default {
 	<div>
         <template v-for="(item, index) in data">
             <slot :item="item" :a="1"></slot>
-		</template>
+			</template>
     </div>
 </template>
 <script>
