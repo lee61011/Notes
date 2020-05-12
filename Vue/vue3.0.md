@@ -120,6 +120,13 @@ plugins: [
     new webpack.HotModuleReplacementPlugin()
 ]
 // 通过上面的配置可以使用 npx webpack-dev-server 来启动热更新服务，和 npx webpack-dev-server --hot 效果相同
+// 在 package.json 配置script后，可以直接使用 npm run dev 来启动服务
+{
+    "script": {
+        "dev": "webpack-dev-server",
+        "build": "webpack"
+    }
+}
 ```
 
 #### 5. 数据交互
@@ -137,7 +144,7 @@ plugins: [
     export default defineComponent({
         setup(){
             // Vue3.0 中可以在 setup 函数中定义方法
-            const count = ref(1) // 创建引用
+            const count = ref(1) // 创建引用 这里的1会被ref包装成一个对象
             const state = reactive({
                 title: 'Vue 3.0'
             })
@@ -157,6 +164,42 @@ plugins: [
 ```
 
 **Vue3.0 没有 this**  ------  Vue2.0 中的 this 指向当前组件对象
+
+#### 6. data && method
+
+```vue
+<template>
+	<div>Hello {{ title }}  -  {{ count }}  -  {{ state.message }}</div>
+	<button @click="increment">button</button>
+</template>
+<script>
+	import { defineComponent, ref, reactive } from 'vue'
+	export default defineComponent({
+        // 组件初始化的时候执行，类似vue2中的created
+        setup() {
+            // 普通值 string number boolean 数据响应 需要用 ref
+            const count = ref(0) // 为一个值创建引用；这里的0会被ref包装成一个对象
+            // 对象需要数据响应 可以使用 reactive
+            const state = reactive({
+                message: 'hello'
+            })
+            
+            const increment = () => {
+                count.value += 10
+                state.message = 'world'
+            }
+            
+            // setup 返回值中的成员可以直接在模板中使用
+            return {
+                title: 'Vue.js 3.0',
+                count,
+                state,
+                increment
+            }
+        }
+    })
+</script>
+```
 
 
 
