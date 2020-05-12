@@ -96,7 +96,67 @@ const config = {
 module.exports = config
 ```
 
+#### 4. webpack-dev-server
 
+```shell
+# 使用 npx webpack-dev-server 命令启动项目，修改代码后浏览器会自动刷新；如果页面中有表单数据，那么刷新页面后数据就没了
+npx webpack-dev-server
+# 上面这种浏览器自动刷新的方式有时候在调试的时候会造成很多不方便，可以配置热更新
+```
+
+```js
+/* 方式一 */
+// 可以使用 npx webpack-dev-server --hot 来启动热更新服务
+
+/* 方式二 */
+// webpack.config.js
+const webpack = require('webpack')
+// 在 module 和 plugin 同级下配置 devServer
+devServer: {
+    hot: true
+},
+plugins: [
+    // 新增
+    new webpack.HotModuleReplacementPlugin()
+]
+// 通过上面的配置可以使用 npx webpack-dev-server 来启动热更新服务，和 npx webpack-dev-server --hot 效果相同
+```
+
+#### 5. 数据交互
+
+需求: 点击按钮，数字自增
+
+```vue
+<template>
+	<button @click="increment">Add {{ count }}</button>
+	<input type="text">
+	<span>{{ state.title }}</span>
+</template>
+<script>
+	import { defineComponent, ref, reactive } from 'vue' // 这里的 ref 和Vue2中的ref不是一个概念，这里的ref的作用是引用传递
+    export default defineComponent({
+        setup(){
+            // Vue3.0 中可以在 setup 函数中定义方法
+            const count = ref(1) // 创建引用
+            const state = reactive({
+                title: 'Vue 3.0'
+            })
+            const increment = () => {
+                // console.log(111)
+                count.value++ // 这里的count被包装了一层，里面的value才是真正的值，在上面的模板中可以直接使用count，不需要.value
+                state.title = '111111'
+            }
+            return {
+                count,
+                state,
+                increment // 方法引入
+            }
+        }
+    })
+</script>
+```
+
+**Vue3.0 没有 this**  ------  Vue2.0 中的 this 指向当前组件对象
 
 
 
