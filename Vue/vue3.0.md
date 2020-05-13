@@ -170,11 +170,19 @@ plugins: [
 ```vue
 <template>
 	<div>Hello {{ title }}  -  {{ count }}  -  {{ state.message }}</div>
+	<div>{{ doubleCount }}</div>
 	<button @click="increment">button</button>
+	<Button text="FOO" @foobar="onFoobar" />
 </template>
 <script>
-	import { defineComponent, ref, reactive } from 'vue'
+	import { defineComponent, ref, reactive, onMounted, onUnmounted, computed } from 'vue'
+    import Button from './components/Button.vue'
 	export default defineComponent({
+        // 组件引用于Vue2相同
+        components: {
+            Button
+        }
+        
         // 组件初始化的时候执行，类似vue2中的created
         setup() {
             // 普通值 string number boolean 数据响应 需要用 ref
@@ -188,20 +196,108 @@ plugins: [
                 count.value += 10
                 state.message = 'world'
             }
+            const onFoobar = (now) => {
+                console.log('button foobar', now)
+            }
+            
+            // 计算属性
+            const doubleCount = computed(() => count.value * 2) 
+            
+            // 生命周期
+            onMounted(() => {
+                // mounted 生命周期
+                console.log('mounted')
+            })
+            onUnmounted(() => {
+                // beforeDestory 生命周期
+            })
             
             // setup 返回值中的成员可以直接在模板中使用
             return {
                 title: 'Vue.js 3.0',
                 count,
+                doubleCount,
                 state,
-                increment
+                increment,
+                onFoobar
             }
         }
     })
 </script>
 ```
 
+#### 7. Vue3 压缩 和 Tree-shaking
 
+Tree-shaking：可以简单理解为 按需导入
+
+参考第六节计算属性、生命周期函数等，用到的模块需要从 vue 中导入使用，这样做在打包的时候没有到的模块不会被打包进去
+
+#### 8. Vue3 常见用法
+
+```vue
+<!-- App.vue 参考第六节 -->
+
+<!-- Button.vue -->
+<template>
+	<button>{{ props.text }}</button>
+</template>
+<script>
+import { defineComponent } from 'vue'
+export default defineComponent({
+    // 仍然可以像2.0一样接收属性
+    // props: {
+    //     text: String
+    // },
+
+    // setup(props, context) {
+    setup(props, { emit }) { // context.emit
+        
+        const onClick = () => {
+            console.log('clicked')
+            // this.$emit('foobar') // Vue2中通过this.$emit向父组件发送事件，在Vue3中this是不存在的
+            emit('foobar', Date.now())
+        }
+        
+        console.log(props) // 也可以通过这种方式接收属性，这里的 props 是一个 Proxy 对象
+        return {
+            props
+        }
+    }
+})
+</script>
+```
+
+#### 9. 逻辑复用
+
+Vue3 有更灵活的逻辑复用能力
+
+```js
+/* utils/window-size.js */
+import { ref, onMounted, onUnmounted } from 'vue'
+
+export default () => {
+    const width = ref(window.innerWidth)
+    const height = ref(window.innerHeight)
+    const update = e => {
+        width.value = window.innerWidth
+        height.value = window.innerHeight
+    }
+    onMounted(() => {
+        window.addEventListener('resize', update)
+    })
+    onUnmounted(() => {
+        window.removeEventListener('resize', update)
+    })
+    return { width, height }
+}
+
+// Vue2中的mixins的缺陷：数据多了之后不方便查看数据是哪里来的，并且如果data中和mixins中有相同的数据会引起冲突
+// Vue3中这样写就清晰多了，并且如果有冲突的数据还可以重命名
+/*
+	import windowSize from '../utils/window-size'
+	const { width: windowWidth, height } = windowSize()
+*/
+```
 
 
 
