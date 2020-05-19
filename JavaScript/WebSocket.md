@@ -32,3 +32,33 @@ Socket.IO 是一个 WebSocket 库，包括了客户端的 js 和服务器端的 
 使用 npm 安装 socket.io
 
 > $ npm install socket.io
+
+#### 启动服务
+
+创建 `app.js` 文件
+
+```js
+var express = require('express')
+var path = require('path')
+var app = express()
+
+app.get('/', function(req, res) {
+    res.sendFile(path.resolve('index.html'))
+})
+
+var server = require('http').createServer(app)
+var io = require('socket.io')(server)
+
+io.on('connection', function(socket) {
+    console.log('客户端已经连接')
+    socket.on('message', function(msg) {
+        console.log(msg)
+        socket.send('sever: ' + msg)
+    })
+})
+server.listen(80)
+```
+
+#### 客户端引用
+
+服务端运行后会在根目录动态生成 socket.io 的客户端 js 文件，客户端可以通过固定路径 `/socket.io/socket.io.js` 添加引用
