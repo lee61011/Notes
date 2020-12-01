@@ -76,15 +76,179 @@ let { avg } = require('./B.js')
 ### 内置模块
 
 - fs 内置模块
+
   - 常规方法：readdir / readFile / writeFile / mkdir / rmdir / appendFile / copyFile ... ...
+    
+    fs.readFileSync([path], [encoding])：不设置编码格式，默认得到的是 Buffer 文件流格式的数据，设置 UTF8，得到的结果是字符串（例如：JSON格式、HTML或者CSS等格式）；但是对于富媒体资源（例如：图片，音视频等）我们读取和传输过程中就是基于 BUFFER 文件流格式操作的，所以不要设置 UTF8 读取
+
+    fs.rmdir 删除目录，但是一定要保证目录中不再有文件，否则不让删除
+    fs.unlink([path], [callback]) 删除文件
+    
   - promise 异步的 fs 操作
+
 - url 内置模块
+
   - url.parse(url[, flag])
+
 - path 内置模块
+
   - __dirname：模块中这个内置变量是当前模块所在的绝对路径
-  - __filename：相对于 __dirname 来讲，多了模块名称
+  - ____filename：相对于 ____dirname 来讲，多了模块名称
   - path.resolve()
+
 - http 内置模块
+
   - http.createServer()
   - erver.listen()
+
+### Promise 版 FS 库的封装
+
+```javascript
+let fs = require('fs')
+let path = require('path')
+
+function readFile(pathname) {
+    // 富媒体资源在获取内容的时候不能使用UTF8编码格式
+    let suffixREG = /\.([0-9a-zA-Z]+)$/, // 以 .xxx 结尾的正则
+        suffix = suffixREG.test(pathname) ? suffixREG.exec(pathname)[1] : '',
+        encoding = 'utf8'
+    /^(PNG|GIF|JPG|JPEG|WEBP|BMP|ICO|SVG|MP3|MP4|WAV|OGG|M3U8)$/i.test(suffix) ? encoding = null : null
+    
+    // 用户调用的时候，传递的pathname都是以项目根目录作为参考(执行JS也是在根目录执行的)，用户只需要把读取文件，相对根目录的路径和名称传递进来即可 => 获取的是绝对路径
+    pathname = path.resolve(pathname)
+    
+    return new Promise((resolve, reject) => {
+        fs.readFile(pathname, encoding, (err, result) => {
+            if(err !== null) {
+                reject(err)
+                return
+            }
+            resolve(result)
+        })
+    })
+}
+
+// fs.readFile('').then(result => {})
+module.exports = { readFile }
+```
+
+```javascript
+/* utils/promiseFS.js */
+
+let fs = require('fs')
+let path = require('path')
+let exportsOBJ = {}
+
+// 根据后缀名返回编码格式 UTF8 / null
+function suffixHandle(pathname) {
+    let suffixREG = /\.([0-9a-zA-Z]+)$/,
+        suffix = suffixREG.test(pathname) ? suffixREG.exec(pathname)[1] : '',
+        encoding = 'utf8'
+    /^(PNG|GIF|JPG|JPEG|WEBP|BMP|IOC|SVG|MP3|MP4|WAV|OGG|M3U8)$/i.test(suffix) ? encoding = null : null
+    return encoding
+}
+
+['readFile', 'readdir', 'mikdir', 'rmdir', 'unlink'].forEach(item => {
+    exportsOBJ[item] = function anonymous(pathname) {
+		// 根据后缀处理 encoding
+        pathname = path.resolve(pathname)
+        return new Promise((resolve, reject) => {
+            let encoding = suffixHandle(pathname),
+                callback = (err, result) => {
+                    if (err!==null) {
+                        reject(err)
+                        return
+                    }
+                    resolve(result)
+                }
+            if (item !== 'readFile') {
+                encoding = callback
+                callback = null
+            }
+            fs[item](pathname, encoding, callback)
+        })
+    }
+})
+
+// writeFile / appendFile
+['writeFile', 'appendFile'].forEach(item => {
+    exportsOBJ[item] = function anonymous(pathname, content) {
+		// 根据后缀处理 encoding
+        pathname = path.resolve(pathname)
+        // 如果content是JSON对象 转化为JSON字符串
+        content !== null && typeof content === 'object' ? content = JSON.stringify(content) : null
+        typeof content !== 'string' ? content += '' : null
+        
+        return new Promise((resolve, reject) => {
+            let encoding = suffixHandle(pathname),
+                callback = (err, result) => {
+                    if (err!==null) {
+                        reject(err)
+                        return
+                    }
+                    resolve(result)
+                }
+            fs[item](pathname, content, encoding, callback)
+        })
+    }
+})
+
+// copyFile
+exportsOBJ['copyFile'] = function anonymous(pathname1, pathname2) {
+    // 根据后缀处理 encoding
+    pathname1 = path.resolve(pathname1)
+    pathname2 = path.resolve(pathname2)
+    
+    return new Promise((resolve, reject) => {
+        fs['copyFile'](pathname1, pathname2, err => {
+            if (err!==null) {
+                reject(err)
+                return
+            }
+            resolve()
+        })
+    })
+}
+
+module.exports = exportsOBJ
+```
+
+
+
+### HTTP内置模块和服务创建
+
+```javascript
+let url = require('url')
+
+// url.parse() 用来解析 URL 中每一部分信息，第二个参数传 true，自动会把问好参数解析成键值对的方式，存储在query属性中
+let str = 'http://www.baidu.com:80/stu/index.html?lx=1&from=weixin#teacher'
+console.log(url.parse(str))
+```
+
+```javascript
+/* server.js */
+
+/*
+	服务器端要做的常规任务
+		1.首先想干事需要有一个服务（创建服务：IIS/NGINX/APPACHE/NODE[HTTP/HTTPS 内置模块]） => 端口号
+		2.接收客户端的请求信息（请求静态资源文件的、请求数据的）
+		3.查找到对应的资源文件内容或者对应的数据信息
+		4.把找到的内容返回给客户端
+*/
+let http = require('http'),
+    url = require('url')
+
+let server = http.createServer();
+function listen(PORT) {
+    try {
+        server.listen(PORT, () => {
+            console.log(`server is runing ${PORT}`)
+        })
+    } catch (err) {
+        PORT++
+        listen(PORT)
+    }
+}
+listen(80)
+```
 
