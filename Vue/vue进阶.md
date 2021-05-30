@@ -377,3 +377,79 @@ export default {
 </script>
 ```
 
+
+
+### observer
+
+```javascript
+/* observer.js */
+let arrayProt = Array.prototype // 数组原型上的方法
+let proto = Object.create(arrayProt);
+['push', 'shift', 'splice'].forEach(method => {
+    proto[method] = function(...args) { // 这个数组应该也被监控
+        console.log(arguments)
+        // Array.prototype.push.call([1,2,3],4,5,6)
+        let inserted; // 默认没有插入新的数据
+        switch (method) {
+            case 'push':
+            case 'unshift':
+                inserted = args
+                break;
+            case 'splice': // 数组的 splice 只有传递三个参数 才有追加元素效果
+                inserted = args.slice(2)
+            default:
+                break;
+        }
+        ArrayObserver(inserted)
+        arrayProto[method].call(this, ...args)
+    }
+})
+
+function ArrayObserver(obj) {
+    for (let i = 0; i < obj.length; i++) {
+        let item = obj[i]
+        observer(item) // 如果是对象会被 defineReactive
+    }
+}
+function observer(obj) {
+    if (typeof obj !== 'object' || obj == null) {
+        return obj
+    }
+    if (Array.isArray(obj)) {
+        // 处理数组格式 (如果调用 push shift splice 这三个方法，应该把这个值判断一下是否是个对象)
+        Object.setPrototypeOf(obj, proto) // obj.__proto__ = proto 实现一个对数组的方法进行重写
+        ArrayObserver(obj)
+    } else { // 处理是对象的
+        for (let key in obj) {
+            defineReactive(obj, key, obj[key]) // 默认只循环第一层
+        }
+    }
+}
+function defineReactive(obj, key, value) {
+    observer(value) // 递归创建响应式数据 性能不好
+    Object.defineProperty(obj, key, {
+        get() {
+            return value
+        },
+        set(newVal) { // 给某个key设置值的时候 可能也是一个对象
+            if (value !== newValue) {
+                observer(value)
+                value = newValue
+                console.log('视图更新')
+            }
+        }
+    })
+}
+let data = {name: '张三'}
+observer(data)
+console.log(data.name)
+data.name = '123'
+data.name = {n: 'lisi'}
+// 特点：使用对象的时候 必须先声明属性，这个属性才是响应式的
+// 1. 增加不存在的属性，不能更新视图 (不会触发defineReactive函数set方法中的视图更新，使用vm.$set解决)
+// 2. vue默认会递归所有数据 增加getter和setter
+// 3. 数组里套对象 对象是支持响应式变化的 如果是常量则没有效果
+// 4. 修改数组索引和长度 是不会导致视图更新的
+// 5. 如果新增的数据 vue中也会帮你监控 (对象类型)
+```
+
