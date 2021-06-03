@@ -453,3 +453,104 @@ data.name = {n: 'lisi'}
 // 5. 如果新增的数据 vue中也会帮你监控 (对象类型)
 ```
 
+template 不能和 v-show 一起用
+
+### 自定义指令 directive
+
+**全局指令**
+所有组件 实例都可以使用
+
+```javascript
+// el 代表当前指令元素
+// bindings 绑定属性
+// VNode 虚拟节点  context上下文， 当前指令所在的上下文
+/*
+Vue.directive('focus', function(el, bindings, vnode) {
+    // 此方法默认只在绑定时和更新时才会执行 (只有依赖的数据发生变化才会重新执行)
+    console.log(el, bindings, vnode)
+    el.focus()
+})
+*/
+Vue.directive('focus', {
+    inserted(el, bindings, vnode) { // 指令元素插入到页面时执行
+        el.focus()
+    }
+    // bind(el, bindings, vnode) {
+    // 	Vue.nextTick(() => el.focus())
+	// }
+})
+let vm = new Vue({
+    el: '#app',
+    data: {}
+})
+```
+
+```javascript
+// v-clickOutside  可以实现点击时判断是否存在当前的dom中
+let vm = new Vue({
+    el: '#app',
+    directives: {
+        clickOutside: {
+            bind(el, bindings, vnode) {
+                el.fn = e => {
+                    if (el.contains(e.target)) {
+                        vnode.context['focus']()
+                    } else {
+                        vnode.context['blur']()
+                    }
+                }
+                document.addEventListener('click', el.fn)
+            },
+            unbind(el) {
+                document.removeEventListener('click', el.fn)
+            }
+        }
+    },
+    data: {
+        isShow: false
+    },
+    methods: {
+        blur() {
+            this.isShow = false
+        },
+        focus() {
+            this.isShow = true
+        }
+    }
+})
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
