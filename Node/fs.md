@@ -13,6 +13,29 @@
 
 ### 写入文件
 
+```javascript
+// write.js
+let str = '珠峰'
+let fs = require('fs')
+fs.open('./1.txt', 'w', 0o666, (err, fd) => {
+  let buff = Buffer.from(str)
+  fs.write(fd, buff, 0, 3 null, (err, bytesWritten) => {
+    console.log(bytesWritten)
+    // 当我们调用write方法写入文件的时候，并不会直接写入物理文件，而是会先写入缓存区，在批量写入物理文件
+    fs.write(fd, buff, 3, 3, null, (err) => {
+      // 迫使操作系统立刻马上把缓存区的内容写入物理文件
+      fs.fsync(fd, () => {
+        fs.close(fd, () => {
+          console.log("文件关闭完成")
+        })
+      })
+    })
+  })
+})
+```
+
+
+
 ### 关闭文件
 
 >   fs.close(fd, [callback])
@@ -37,6 +60,21 @@ fs.open('./2.txt', 'w', function(err, fd) {
 
 ### 拷贝文件
 
+```javascript
+function copy(src, dest, callback) {
+  let buf = Buffer.alloc(BUFFER_SIZE)
+  fs.open(src, 'r', function(err, readFd) {
+    err ? callback(err) : fs.open(dest, 'w', function(err, writeFd) {
+      err ? callback(err) : !function read(err) {
+        err ? callback(err) : fs.read(readFd, buf, 0, BUFFER_SIZE, null, function(err, bytesRead, buffer) {
+          bytesRead && fs.write(writeFd, buf, 0, bytesRead, read)
+        })
+      }();
+    })
+  })
+}
+```
+
 
 
 ### 目录操作
@@ -46,7 +84,7 @@ fs.open('./2.txt', 'w', function(err, fd) {
 >   fs.mkdir(path[, mode], callback)
 >   要求父目录必须存在
 
-**判断一个文件是否有权限访问**
+#### 判断一个文件是否有权限访问
 
 >   fs.access(path[, mode], callback)
 >
@@ -133,7 +171,103 @@ function rmdirp(dir) {
 rmdirp('a')
 ```
 
+#### 读取目录下所有的文件
 
+>   fs.readdir(path[, options], callback)
+
+```javascript
+// readdir.js
+let fs = require('fs')
+let path = require('path')
+fs.readdir('./a', function(err, files) {
+  console.log(files)
+  files.forEach(file => {
+    let child = path.join('a', file) // 拼接子路径
+    fs.state(child, function(err, stat) {
+      console.log(stat) // 文件详细信息
+    })
+  })
+})
+```
+
+
+
+#### 查看文件目录信息
+
+>   fs.stat(path, callback)
+
+-   stats.isFile()
+-   stats.isDirectory()
+-   atime(Access Time) 上次被读取的时间
+-   ctime(State Change Time) 属性或内容上次被修改的时间
+-   mtime(Modified Time) 档案的内容上次被修改的时间
+
+#### 移动文件或目录
+
+>   fs.rename(oldPath, newPath, callback)
+
+#### 删除文件
+
+>   fs.unlink(path, callbakc)
+
+#### 截断文件
+
+>   fs.ftruncate(fd[, len], callback)
+
+```javascript
+const fd = fs.openSync('temp.txt', 'r+')
+// 截断文件至前4个字节
+fs.ftruncate(fd, 4, (err) => {
+  console.log(fs.readFileSync('temp.txt', 'utf8'))
+})
+```
+
+#### 删除空目录
+
+只能用在空目录上
+
+```javascript
+let fs = require('fs')
+function rmdirp(target) {
+  let files = fs.readdirSync(target)
+  files.forEach(function(item) {
+    let child = target+'/'+item
+    if(fs.statSync(child).isDirectory()) {
+      rmdirp(child)
+    } else {
+      fs.unlinkSync(child)
+    }
+  })
+  fs.rmdirSync(target)
+}
+rmdirp('a')
+```
+
+异步删除非空目录
+
+```javascript
+function rm(dir) {
+  return new Promise((resolve, reject) => {
+    fs.stat(dir, (err, stat) => {
+      if (err) return reject(err)
+      if (stat.isDirectory()) {
+        fs.readdir(dir, (err, files) => {
+          if (err) return reject(err)
+          Promise.all(files.map(file => rm(path.join(dir, file)))).then(() => {
+            fs.rmdir(dir, resolve)
+          })
+        })
+      } else {
+        fs.unlink(dir, resolve)
+      }
+    })
+  })
+}
+```
+
+#### 遍历算法
+
+目录是一个树状结构，在遍历时一般使用深度优先+先序遍历算法。深度优先，意味着到达一个节点后，首先接着遍历子节点而不是邻居节点。先序遍历意味着首次到达了某个节点就算遍历完成，而不是最后一次返回某个节点才算数。因此使用这种遍历方式时，下边这棵树的遍历顺序是 A>B>D>E>C>F
 
 ## 文本编码
 
