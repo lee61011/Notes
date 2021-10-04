@@ -151,7 +151,7 @@ fs.readdir()
 // 删除一个文件
 fs.unlink(path)
 // 删除一个空目录
-fs.rmdir('a/b/c')
+fs.rmdir('a/b/c') // 这一定是一个空目录
 
 // 同步方法实现
 function rmdirp(dir) {
@@ -263,11 +263,107 @@ function rm(dir) {
     })
   })
 }
+rm('a').then(data => console.log(data), function(err) {
+  console.error(err)
+})
 ```
 
 #### 遍历算法
 
-目录是一个树状结构，在遍历时一般使用深度优先+先序遍历算法。深度优先，意味着到达一个节点后，首先接着遍历子节点而不是邻居节点。先序遍历意味着首次到达了某个节点就算遍历完成，而不是最后一次返回某个节点才算数。因此使用这种遍历方式时，下边这棵树的遍历顺序是 A>B>D>E>C>F
+目录是一个树状结构，在遍历时一般使用深度优先+先序遍历算法。深度优先，意味着到达一个节点后，首先接着遍历子节点而不是邻居节点。先序遍历意味着首次到达了某个节点就算遍历完成，而不是最后一次返回某个节点才算数。因此使用这种遍历方式时，下边这棵树的遍历顺序是 A>B>D>E>C>F	
+
+```javascript
+			A
+   B			C
+D		E				F
+```
+
+##### 同步深度优先+先序遍历
+
+```javascript
+function deepSync(dir) {
+  console.log(dir)
+  fs.readdirSync(dir).forEach(file => {
+    let child = path.join(dir, file)
+    let stat = fs.statSync(child)
+    if (stat.isDirectory()) {
+      deepSync(child)
+    } else {
+      console.log(child)
+    }
+  })
+}
+```
+
+##### 异步深度优先+先序遍历
+
+```javascript
+// preorder.js
+let fs = require('fs')
+function preDeep(dir, callback) {
+  console.log(dir)
+  fs.readdir(dir, (err, files) => {
+    !function next(i) {
+      if (i >= files.length) return callback()
+      let child = path.join(dir, files[i])
+      fs.stat(child, (err, stat) => {
+        if (stat.isDirectory()) {
+          preDeep(child, () => next(i+1))
+        } else {
+          console.log(child)
+          next(i+1)
+        }
+      })
+    }(0);
+  })
+}
+preDeep('a', () => {
+  console.log('全部迭代完毕')
+})
+```
+
+##### 同步的广度优先先序遍历
+
+```javascript
+// wide.js
+let fs = require('fs')
+let path = require('path')
+function wide(dir) {
+  let arr = [dir]
+  while(arr.length > 0) {
+    let current = arr.shift() // 取出队列最左边的元素
+    console.log(current)
+    let stat = fs.statSync(current)
+    if (stat.isDirectory()) {
+      let files = fs.readdirSync(current)
+      files.forEach(item => {
+        arr.push(path.join(current, item))
+      })
+    }
+  }
+}
+wide('a')
+```
+
+##### 异步广度优先+先序遍历
+
+##### 监视文件或目录
+
+>   fs.watchFile(filename[, options], listener)
+
+```javascript
+let fs = require('fs')
+fs.watchFile('1.txt', (curr, prev) => {
+  // parse() 方法可解析一个日期时间字符串，并返回1970/1/1 午夜距离该日期时间的毫秒数
+  if (Date.parse(prev.ctime) === 0) {
+    console.log('创建')
+  } else if (Date.parse(curr.ctime) == 0) {
+    console.log('删除')
+  } else if (Date.parse(prev.ctime) != Date.parse(curr.ctime)) {
+    console.log('修改')
+  }
+})
+```
 
 ## 文本编码
 
@@ -317,4 +413,55 @@ function readGBKText(pathname) {
 ```
 
 
+
+
+
+
+
+## path
+
+path是node中专门处理路径的一个核心模块
+
+-   path.join 将多个参数值字符串组合为一个路径字符串
+-   path.basename 获取一个路径中的文件名
+-   path.extname 获取一个路径中的扩展名
+-   path.sep 操作系统指定的文件分割符
+-   path.delimiter 属性值为系统指定的环境变量路径分隔符
+-   path.normalize 将非标准的路径字符串转化为标准路径字符串 特点：
+    -   可以解析 . 和 ..
+    -   多个杠可以转换成一个杠
+    -   在Windows下反杠会转化成正杠
+    -   如结尾以杠结尾，则保留斜杠
+-   resolve
+    -   以应用程序根目录为起点
+    -   如果参数是普通字符串，则意思是当前目录的下级目录
+    -   如果参数是 .. 回到上一级目录
+    -   如果是 / 开头表示一个绝对的根路径
+
+```javascript
+// path.js
+let path = require('path')
+
+// 连接两个目录
+console.log(path.join('a', 'b'))
+// resolve从当前路径出发，解析出一个绝对路径
+// ..代表上一级目录	.代表当前目录		字符串a代表当前目录下面的a目录
+console.log(path.resolve('..', '.', 'a'))
+
+// 环境变量路径分割符；	=> 因为在不同的操作系统 分割符不一样
+path.delimiter
+console.log(path.win32.delimiter) // win系统分割符;
+console.log(path.posix.delimiter) // linux系统分割符:
+// 文件路径分割符\
+path.sep
+console.log(path.win32.sep) // \
+console.log(path.posix.sep) // /
+
+path.relative // 获取两个路径之间的相对路径
+
+// basename获取的是文件名
+path.basename('aa.jpg') // aa.jpg
+path.basename('aa.jpg', '.jpg') // aa 第二个参数表示取消.jpg后缀
+path.extname('aa.jpg') // extname获取的是文件扩展名
+```
 
