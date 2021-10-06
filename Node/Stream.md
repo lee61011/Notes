@@ -25,6 +25,11 @@ var rs = fs.createReadStream(path, [options])
 
 1.   path 读取文件的路径
 2.   options
+     1.   flags 打开文件要做的操作，默认为'r'
+     2.   encoding 默认为 null
+     3.   start 开始读取的索引位置
+     4.   end 结束读取的索引位置 (包括结束位置)
+     5.   highWateMark 读取缓存区默认的大小 64kb
 
 ### 监听data事件
 
