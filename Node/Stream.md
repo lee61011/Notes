@@ -23,6 +23,41 @@ util.inherits(ReadStream, Readable)
 var rs = fs.createReadStream(path, [options])
 ```
 
+```javascript
+/*  可读流  */
+let fs = require('fs')
+// 通过 fs.createReadStream 创建一个可读流
+let rs = fs.createReadStream('./1.txt', {
+  flags: 'r', // 要对文件进行何种操作
+  mode: 0o666, // 权限位
+  encoding: 'utf8', // 设置编码
+  start: 3, // 从索引为3的位置开始读
+  end: 8, // 读到索引为8结束(唯一一个包括结束索引的)
+  highWaterMark: 3 // 缓冲区大小
+})
+rs.on('open', function() {
+  console.log('文件打开')
+})
+// rs.setEncoding('utf8') // 设置编码，也可写在参数内
+
+// 监听它的data事件，一旦开始监听data事件的时候，流就开始读文件的内容并且发射data
+// 默认情况下，当监听data事件后，会不停的读数据，然后触发data事件，触发完data事件后再次读数据
+rs.on('data', function(data) {
+  console.log(data)
+})
+// 如果读取文件出错了，会触发error事件
+rs.on('error', function() {
+  console.log('error')
+})
+// 如果文件的内容读完了，会触发end事件
+rs.on('end', function() {
+  console.log('读完了')
+})
+rs.on('close', function() {
+  console.log('文件关闭')
+})
+```
+
 1.   path 读取文件的路径
 2.   options
      1.   flags 打开文件要做的操作，默认为'r'
