@@ -1,3 +1,23 @@
+## JS模块化方面的不足
+
+- JS 没有模块系统，不支持封闭的作用域和依赖管理
+- 没有标准库，没有文件系统和IO流API
+- 也没有包管理系统
+
+## CommonJS 规范
+
+- 封装功能
+- 封闭作用域
+- 可能解决依赖问题
+- 工作效率更高，重构方便
+
+## Node 中的 CommonJS
+
+- 在 nodejs 里，模块划分所有的功能，每个 JS 都是一个模块
+- 实现 require 方法，NPM 实现了模块的自动加载和安装依赖
+
+
+
 ## CommonJS 模块管理机制
 
 > AMD：require.js
@@ -100,6 +120,22 @@ let { avg } = require('./B.js')
 
   - http.createServer()
   - erver.listen()
+
+
+
+### 模块的加载策略
+
+### 文件模块查找规则
+
+BFD23211232
+
+
+
+
+
+
+
+
 
 ### Promise 版 FS 库的封装
 
