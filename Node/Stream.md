@@ -17,12 +17,7 @@ fs.createReadStream = function(path, options) {
 util.inherits(ReadStream, Readable)
 ```
 
-### 创建可读流
-
-```javascript
-var rs = fs.createReadStream(path, [options])
-```
-
+`rs.js`
 ```javascript
 /*  可读流  */
 let fs = require('fs')
@@ -42,8 +37,13 @@ rs.on('open', function() {
 
 // 监听它的data事件，一旦开始监听data事件的时候，流就开始读文件的内容并且发射data
 // 默认情况下，当监听data事件后，会不停的读数据，然后触发data事件，触发完data事件后再次读数据
+// 希望流有一个暂停和恢复触发的机制
 rs.on('data', function(data) {
   console.log(data)
+  rs.pause() // 暂停读取和发射data事件
+  setTimeout(function() {
+    rs.resume() // 恢复读取并触发data事件
+  }, 2000)
 })
 // 如果读取文件出错了，会触发error事件
 rs.on('error', function() {
@@ -56,6 +56,12 @@ rs.on('end', function() {
 rs.on('close', function() {
   console.log('文件关闭')
 })
+```
+
+### 创建可读流
+
+```javascript
+var rs = fs.createReadStream(path, [options])
 ```
 
 1.   path 读取文件的路径
@@ -74,6 +80,8 @@ rs.on('close', function() {
 
 ### 监听open事件
 
+不是所有流都有打开关闭事件的，只有文件流才有
+
 ### 监听close事件
 
 ### 设置编码
@@ -82,24 +90,118 @@ rs.on('close', function() {
 
 ## 可写流 createWriteStream
 
+`ws.js`
+```javascript
+/*  可写流 就是往里面写  */
+// 当往可写流里写数据的时候，不是会立刻写入文件的，而是会先写入缓存区缓存区的大小就是highWaterMark,默认值是16k. 然后等缓存区满了之后再次真正的写入文件里
+let fs = require('fs')
+let ws = fs.createWriteStream('./2.txt', {
+  flags: 'w',
+  mode: 0o666,
+  start: 0,
+  highWaterMark: 3
+})
+
+// 如果缓存区已满，返回false，如果缓存区未满，返回true
+// 如果能接着写，返回true，如果不能接着写，返回false
+// 按理说如果返回了false，就不能再往里面写了，但是如果真写了，数据也不会丢失，会缓存在内存里。等缓存区清空之后再从内存里读出来
+let flag = ws.write('1')
+console.log(flag) // true
+flag = ws.write('2')
+console.log(flag) // true
+flag = ws.write('3')
+console.log(flag) // false
+flag = ws.write('4')
+console.log(flag) // false
+```
+
 ### 创建可写流
 
 ### write方法
 
 ### end方法
 
+```javascript
+ws.end(chunk, [encoding], [callback])
+```
+
+> 表明接下来没有数据要被写入 Writable 通过传入可选的 chunk 和 encoding 参数，可以在关闭流之前再写入一段数据，如果传入了可选的 callback 函数，它将作为 'finish' 事件的回调函数
+
 ### drain方法
 
+- 当一个流不处在 drain 的状态，对 write() 的调用会缓存数据块，并且返回 false。一旦所有当前所有缓存的数据块都排空了(被操作系统接受来进行输出)，那么 'drain' 事件就会被触发
+
+- 建议，一旦 write() 返回 false，在 'drain' 事件触发前，不能写入任何数据块
+
+  ```javascript
+  let fs = require('fs')
+  let ws = fs.createWriteStream('./2.txt', {
+      flags: 'w',
+      encoding: 'utf8',
+      highWaterMark: 3
+  })
+  let i = 10
+  function write() {
+      let flag = true
+      while (i && flag) {
+          flag = ws.write('1')
+          i--
+          // TODO 未完待续
+      }
+  }
+  ```
+
 ### finish方法
+
+在调用了 stream.end() 方法，且缓冲区数据都已经传给底层系统之后，'finish' 事件将被触发
+
+```javascript
+var writer = fs.createWriteStream('./2.txt')
+for (let i = 0; i < 100; i++) {
+    writer.write(`hello, ${i}!\n`)
+}
+writer.end('结束\n')
+writer.on('finish', () => {
+    console.error('所有的写入已经完成！')
+})
+```
 
 ## pipe方法
 
 ### pipe方法的原理
 
+```javascript
+var fs = require('fs')
+var ws = fs.createWriteStream('./2.txt')
+var rs = fs.createReadStream('./1.txt')
+rs.on('data', function(data) {
+    var flag = ws.write(data)
+    if (!flag)
+        rs.pause()
+})
+ws.on('drain', function() {
+    rs.resume()
+})
+rs.on('end', function() {
+    ws.end()
+})
+```
 
 ### pipe用法
 
+```javascript
+readStream.pipe(writeStream)
+var from = fs.createReadStream('./1.txt')
+var to = fs.createWriteStream('./2.txt')
+from.pipe(to)
+```
+
+> 将数据的滞留量限制到一个可接受的水平，以使得不同速度的来源和目标不会淹没可用内存
+
 ### unpipe用法
+
+- readable.unpipe() 方法将之前通过 stream.pipe() 方法绑定的流分离
+- 如果 destination 没有传入，则所有绑定的流都会被分离
 
 ### cork
 
@@ -108,3 +210,44 @@ rs.on('close', function() {
 ## 简单实现
 
 ### 可读流的简单实现
+
+```javascript
+let fs = require('fs')
+let ReadStream = require('./ReadStream')
+let rs = ReadStream('./1.txt', {
+    flags: 'r',
+    encoding: 'utf8',
+    start: 3,
+    end: 7,
+    highWaterMark: 3
+})
+rs.on('open', function() {
+    console.log('open')
+})
+rs.on('data', function(data) {
+    console.log(data)
+})
+rs.on('end', function() {
+    console.log('end')
+})
+rs.on('close', function() {
+    console.log('close')
+})
+```
+
+`ReadStream.js`
+
+```javascript
+module.exports = ReadStream
+let fs = require('fs')
+let util = require('util')
+let EventEmitter = require('events')
+
+function ReadStream(path, options) {
+    // TODO 未完待续
+}
+```
+
+
+
+### 可写流的简单实现
