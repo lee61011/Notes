@@ -61,3 +61,98 @@
 ## readable
 
 ## 暂停模式的简单实现
+
+## 流的经典应用
+
+### 行读取器
+
+#### 换行和回车
+
+- 以前的打印要每秒可以打印10个字符，换行需要0.2秒，正要可以打印两个字符。
+- 研制人员就是在每行后面加两个表示结束的字符。一个叫做"回车"，告诉打印机把打印头定位在左边界；另一个叫做"换行"，告诉打印机把纸向下移一行。
+- Unix 系统里，每行结尾只有换行 (line feed)，即 "\n"
+- Windows 系统里面，每行结尾是"<回车><换行>"，即 "\r\n"
+- Mac 系统里，每行结尾是 "回车" (carriage return)，即 "\r"
+- 在 ASCII 码里
+  - 换行 \n 10 0A
+  - 回车 \r 13 0D
+
+#### 代码
+
+`LineReader.js`
+
+```javascript
+// 写一个类，然后可以传入一个文件路径得到类的实例，然后可以监听它的newLine事件，当这个行读取器每次读到一行的时候，就会向外发射newLine事件，当读到结束的时候会发射end事件
+let EventEmitter = require('events')
+let util = require('util')
+let fs = require('fs')
+const NEW_LINE = 0x0A // /n 换行
+const RETURN = 0x0D // /r 回车
+function LineReader(path, encoding) {
+    EventEmitter.call(this)
+    this.encoding = encoding || 'utf8'
+    this._reader = fs.createReadStream(path)
+    // 当给一个对象添加一个新的监听函数的时候会触发 newListener 事件
+    this.on('newListener', (type, listener) => {
+        // 如果说添加了 newLine 和监听，那么就开始读取文件文件内容并按行发射数据
+        if (type === 'newLine') {
+            // 当我们监听了一个可读流的 readable 的事情，流会调用底层的读取文件的API方法填充缓存区，填充完之后向外发射readable事件
+            let buffers = []
+            this._reader.on('readable', () => {
+                let char // Buffer 是一个只有一个字节的Buffer
+                while(null != (char = this._reader.read(1))) {
+                    switch (char[0]) {
+                        case NEW_LINE:
+                            this.emit('newLine', Buffer.from(buffers).toString(this.encoding))
+                            buffers.length = 0
+                            break
+                        case RETURN:
+                            this.emit('newLine', Buffer.from(buffers).toString(this.encoding))
+                            buffers.length = 0
+                            // 往后再读一个字节 区分不同操作系统的回车换行
+                            let nChar = this._reader.read(1)
+                            if (nChar[0] != NEW_LINE) {
+                                buffers.push(nChar[0])
+                            }
+                            break
+                        default:
+                            buffers.push(char[0])
+                            break
+                    }
+                }
+            })
+            // 当用流去监听数据的时候，当读完之后都会发射end事件
+            this._reader.on('end', () => {
+                this.emit('newLine', Buffer.from(buffers).toString(this.encoding))
+                this.emit('end')
+            })
+        }
+    })
+}
+util.inherits(LineReader, EventEmitter)
+module.exports = LineReader
+```
+
+`reader.js`
+
+```javascript
+let LineReader = require('./LineReader')
+let reader = new LineReader('./1.txt', 'utf8')
+reader.on('newLine', data => {
+    console.log(data)
+})
+reader.on('end', data => {
+    console.log('over')
+})
+```
+
+`1.txt`
+
+```txt
+123
+456
+789
+```
+
+
+

@@ -251,3 +251,129 @@ function ReadStream(path, options) {
 
 
 ### 可写流的简单实现
+
+`write.js`
+
+```javascript
+let fs = require('fs')
+let WriteStream = require('./WriteStream')
+// let ws = fs.createWriteStream('./1.txt', {
+let ws = new WriteStream('./1.txt', {
+    flags: 'w',
+    mode: 0o666,
+    start: 0,
+    encoding: 'utf8',
+    autoClose: true, // 当流写完之后自动关闭文件
+    highWaterMark: 3
+})
+let n = 9
+
+ws.on('error', err => console.log(err))
+function write() {
+    let flag = true
+    while(flag && n>0) {
+        flag = ws.write(n+'', 'utf8', () => {console.log('ok')})
+        n--
+        console.log(flag)
+    }
+    ws.once('drain', () => {
+        console.log('drain')
+        write()
+    })
+}
+write()
+```
+
+`WriteStream.js`
+
+```javascript
+let fs = require('fs')
+let EventEmitter = require('events')
+
+class WriteStream extends EventEmitter {
+    constructor(path, options) {
+        super(path, options)
+        this.path = path
+        this.flags = options.flags || 'w'
+        this.mode = options.mode || 0o666
+        this.start = options.start || 0
+        this.pos = this.start // 文件的写入索引
+        this.encoding = options.encoding || 'utf8'
+        this.autoClose = options.autoClose
+        this.highWaterMark = options.highWaterMark || 16*1024
+        this.buffers = [] // 缓存区
+        
+        this.writing = false // 表示内部正在写入数据
+        this.length = 0 // 表示缓存区字节的长度
+        this.open()
+    }
+    
+    open() {
+        fs.open(this.path, this.flags, this.mode, (err, fd) => {
+            if (err) {
+                if (this.autoClose) {
+                    this.destroy() // 打开文件失败，销毁流
+                }
+                this.emit('error', err)
+            }
+            this.fd = fd
+            this.emit('open')
+        })
+    }
+    // 如果底层已经在写入数据的话，则必须当前要写入数据放在缓冲区里
+    write(chunk, encoding, cb) {
+        chunk = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk, this.encoding)
+        let len = chunk.length
+        // 缓存区的长度加上当前写入的长度
+        this.length += len
+        // 判断当前最新的缓存区是否小于最高水位线
+        let ret = this.length < this.highWaterMark
+        if (this.writing) { // 表示正在向底层写数据，则当前数据必须放在缓存区里
+            this.buffers.push({
+                chunk,
+                encoding,
+                cb
+            })
+        } else { // 直接调用底层的写入方法进行写入
+            // 在底层写完当前数据后要清空缓存区
+            this.writing = true
+            this._write(chunk, encoding, () => this.clearBuffer())
+        }
+        return ret
+    }
+    clearBuffer() {
+        // 取出缓存区中的第一个buffer
+        let data = this.buffers.shift()
+        if (data) {
+            this._write(data.chunk, data.encoding, () => this.clearBuffer())
+        } else {
+            this.writing = false
+            this.emit('drain') // 缓存区清空了
+        }
+    }
+    _write(chunk, encoding, cb) {
+        if (typeof this.fd !== 'number') { // 文件还没有打开
+            return this.once('open', () => this._write(chunk, encoding, cb))
+        }
+        fs.write(this.fd, chunk, 0, chunk.length, this.pos, (err, bytesWritten) => {
+            if (err) {
+                if (this.autoClose) {
+                    this.destroy()
+                    this.emit('error', err)
+                }
+            }
+            this.pos += bytesWritten
+            this.length -= bytesWritten // 写入多少字节，缓存区要减少多少字节
+            cb && cb()
+        })
+    }
+    destroy() {
+        fs.close(this.fd, () => {
+            this.emit('close')
+        })
+    }
+}
+
+module.exports = WriteStream
+```
+
