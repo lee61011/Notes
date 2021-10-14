@@ -68,5 +68,52 @@ server.listen(port, [host], [backlog], [callback])
 
 
 
+# UDP
+
+## 创建socket
+
+```javascript
+let socket = dgram.createSocket(type, [callback])
+socket.on('message', function(msg, rinfo) {})
+```
+
+- type 必须输入，指定是udp4还是udp6
+
+- callback 从该接口接收到数据时调用回调函数
+
+  - msg 接收到的数据
+  - rinfo 信息对象
+    - address 发送者的地址
+    - family ipv4还是ipv6
+    - port 发送者的 socket 端口号
+    - size 发送者所发送的数据字节数
+
+  ```javascript
+  socket.bind(port,[address],[callback])
+  socket.on('listening', callback)
+  ```
+
+- port 绑定的端口号
+
+- address 监听的地址
+
+- callback 监听成功后的回调函数
+
+## 向外发送数据
+
+如果发送数据前还没有绑定过地址和端口号，操作系统将为其分配一个随机端口并可以接收任何地址的数据
+
+```javascript
+socket.send(buf, offset, length, port, address, [callback])
+```
+
+- buffer 代表缓存区
+- offset 从缓存区第几个字节开始发
+- length 要发送的字节数
+- port 对方的端口号
+- address 接收地址的 socket 地址
+
+
+
 
 
