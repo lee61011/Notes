@@ -113,6 +113,76 @@ socket.send(buf, offset, length, port, address, [callback])
 - port 对方的端口号
 - address 接收地址的 socket 地址
 
+## address
+
+## UDP服务器
+
+## UDP客户端
+
+## 广播
+
+### 服务器
+
+### 客户端
+
+## 组播
+
+- 所谓的组播，就是将网络中同一业务类型进行逻辑上的分组，从某个socket端口上发送的数据只能被该组中的其他主机所接收，不被组外的任何主机接收
+- 实现组播时，并不直接把数据发送给目标地址，而是将数据发送到组播主机，操作系统将把该数据组播给组内的其他所有成员
+- 在网络中，使用D类地址作为组播地址。范围是 224.0.0.0 ~ 239.255.255.255，分为三类
+  - 局部组播地址：224.0.0.0 ~ 224.0.0.255 为路由协议和其他用途保留
+  - 预留组播地址：224.0.1.0 ~ 238.255.255.255 可用于全球范围或网络协议
+  - 管理权限组播地址：239.0.0.0 ~ 239.255.255.255 组织内部使用，不可用于 Internet
+
+把该 socket 端口对象添加到组播组中
+
+```javascript
+socket.addMembership(multicastAddress, [multicastInterface])
+```
+
+- multicastAddres 必须指定，需要加入的组播组地址
+
+- multicastInterface 可选参数，需要加入的组播组地址
+
+  ```javascript
+  socket.dropMembership(multicastAddress, [multicastInterface])
+  socket.setMulticastTTL(ttl)
+  socket.setMulticastLoopback(flag)
+  ```
+
+### 服务器
+
+```javascript
+let dgram = require('dgram')
+let server = dgram.createSocket('udp4')
+server.on('listening', function() {
+    server.MulticastTTL(128)
+    server.setMulticastLoopback(true)
+    server.addMembership('230.185.192.108')
+})
+setInterval(broadcast, 1000)
+function broadcast() {
+    let buffer = Buffer.from(new Date().toLocaleString())
+    server.send(buffer, 0, buffer.length, 8080, '230.185.192.108')
+}
+```
+
+### 客户端
+
+```javascript
+let dgram = require('dgram')
+let client = dgram.createSocket('udp4')
+client.on('listening', function() {
+    client.addMembership('230.185.192.108')
+})
+client.on('message', function(message, remote) {
+    console.log(message.toString())
+})
+client.bind(8080, '192.168.1.103')
+```
+
+
+
 
 
 
