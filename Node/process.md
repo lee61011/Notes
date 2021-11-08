@@ -75,19 +75,214 @@ console.log(`上层目录：${process.cwd()}`)
 
 ### exit 方法
 
+退出运行 Node.js 应用程序的进程
+
+```javascript
+process.exit(0)
+```
+
 ### kill 方法
+
+用于向进程发送一个信号
+
+- SIGINT 程序终止(interrupt)信号，在用户键入INTR字符(通常是Ctrl-C)时发出，用于通知前台进程组终止进程
+
+- SIGTERM 程序结束(terminate)信号，该信号可以被阻塞和处理。通常用来要求程序自己正常退出，shell命令kill缺省产生这个信号
+
+  ```javascript
+  process.kill(pid,[signal])
+  ```
+
+- pid 是一个整数，用于指定需要接收信号的进程ID
+
+- signal 发送的信号，默认为 SIGTERM
 
 ### uptime
 
+返回当前程序的运行时间
+
+```javascript
+process.uptime()
+```
+
 ### hrtime
+
+测试一个代码段的运行时间，返回两个时间，第一个单位是秒，第二个单位是纳秒
+
+```javascript
+let fs = require('fs')
+let time = process.hrtime()
+let data = fs.readFileSync('index.txt')
+let diff = process.hrtime()
+console.log(`读文件操作耗费的%d秒`, diff[0])
+```
 
 ### exit 事件
 
+当运行Nodejs应用程序进程退出时触发进程对象的exit事件。可以通过指定事件回调函数来指定进程退出时所执行的处理
+
+```javascript
+process.on('exit', function() {
+    console.log('Node.js进程被退出')
+})
+process.exit()
+```
+
 ### uncaughtException 事件
+
+当应用程序抛出一个未被捕获的异常时触发进程对象的uncaughtException事件
+
+```javascript
+process.on('uncaughtException', function(err) {
+    console.log('捕获到一个未被处理的错误', err)
+})
+notExist()
+```
 
 ### 信号事件
 
-
+```javascript
+process.stdin.resume()
+process.on('SIGINT', function() {
+    console.log('接收到SIGINT信号')
+})
+```
 
 ## 子进程
+
+- 在 Nodejs 中，只有一个线程执行所有操作，如果某个操作需要大量消耗CPU资源的情况下，后续操作都需要等待
+- 在 Nodejs 中，提供了一个 `child_process` 模块，通过它可以开启多个子进程，在多个子进程之间可以共享内存空间，可以通过子进程的互相通信来实现信息的交换。
+
+### spawn
+
+#### 语法
+
+```javascript
+child_process.spawn(command,[args],[options])
+```
+
+- command 必须指定的参数，指定需要执行的命令
+- args 数组，存放了所有运行该命令需要的参数
+- options 参数为一个对象，用于指定开启子进程时使用的选项
+  - cwd 子进程的工作目录
+  - env 环境变量
+  - detached 如果为 true，该子进程为一个进程组中的领头进程，当父进程不存在时也可以独立存在
+  - stdio 三个元素的数组，设置标准输入/输出
+    - pipe 在父进程和子进程之间创建一个管道，父进程可以通过子进程的 stdio[0] 访问子进程的标准输入，通过 stdio[1] 访问标准输出，stdio[2] 访问错误输出
+    - ipc 在父进程和子进程之间创建一个专用与传递消息的IPC通道。可以调用子进程的 send 方法向子进程发消息，子进程会触发 message 事件
+    - ignore 指定不为子进程设置文件描述符。这样子进程的标准输入、标准输出和错误输出被忽略
+    - stream 子进程和父进程共享一个终端设备、文件、端口或管道
+    - 正整数值 和共享一个stream是一样的
+    - null或undefined 在子进程中创建与父进程相连的管道
+
+默认情况下，子进程的stdin，stdout，stderr导向了 ChildProcess 这个对象的 child.stdin，child.stdout，child.stderr流
+
+```javascript
+let spawn = require('child_process').spawn
+spawn('prg', [], {stdio: ['pipe', 'pipe', process.stderr]})
+```
+
+- ignore ['ignore','ignore','ignore'] 全部忽略
+
+- pipe ['pipe','pipe','pipe'] 通过管道连接
+
+- inherit [process.stdin, process.stdout, process.stderr]或[0,1,2] 和父进程共享输入输出
+
+```javascript
+let spawn = require('child_process').spawn
+spawn('prg', [], {stdio: 'inherit'})
+```
+
+- spawn 方法返回一个隐式创建的代表子进程的 ChildProcess 对象
+- 子进程对象同样拥有 stdin 属性值为一个可用于读入子进程的标准输入流对象
+- 子进程对象同样拥有 stdout 属性值和 stderr 属性值可分别用于写入子进程的标准输出流与标准错误输出流
+
+#### close
+
+- 当子进程所有输入输出都终止时，会触发子进程对象的close事件
+
+  ```javascript
+  child.on('close', function(code, signal){})
+  ```
+
+  - code 为0表示正常退出，为null表示异常退出
+  - 当在父进程中关闭子进程时，signal 参数值为父进程发给子进程的信号名称
+
+#### exit
+
+- 当子进程退出时，触发子进程对象的 exit 事件
+
+- 因为多个进程可能会共享i个输入/输出，所以当子进程退出时，子进程的输入/输出可能并未终止
+
+  ```javascript
+  child.on('exit', function(code, signal){})
+  ```
+
+#### error
+
+如果子进程开启失败，那么将会触发子进程对象的error事件
+
+```javascript
+child1.on('error', function(err) {
+    console.log(err)
+})
+```
+
+#### kill
+
+- 父进程和可以使用 kill 方法向子进程发送信号，参数为描述该信号的字符串，默认参数值为 `SIGTERM`
+
+- SIGTERM 程序结束(terminate)信号，与 SIGKILL 不同的是该信号可以被阻塞和处理，通常用来要求程序自己正常退出
+
+  ```javascript
+  child.kill([signal])
+  ```
+
+#### 案例
+
+1.spawn.js
+
+```javascript
+let path = require('path')
+let { spawn } = require('child_process')
+// 默认情况下，子进程的 stdin,stdout,stderr 导向 ChildProcess 这个对象的 child.stdin,child.stdout,child.stderr 流
+// 这和设置 stdio 为 ['pipe', 'pipe', 'pipe'] 是一样的
+let p1 = spawn('node', ['test1.js', 'a'], {
+    cwd: path.join(__dirname, 'test1')
+})
+let p2 = spawn('node', ['test3.js'], {
+    cwd: path.join(__dirname, 'test3')
+    stdio: 'pipe'
+})
+// 监听 test1.js 脚本子进程对象的标准输出的data事件，把数据写给p2
+p1.stdout.on('data', function(data) {
+    console.log('p1:子进程的标准输出：' + data)
+    p2.stdin.write(data)
+})
+p1.on('error', function() {
+    console.log('p1:子进程1开启失败')
+})
+p2.on('error', function() {
+    console.log('p2:子进程2开启失败')
+})
+```
+
+2.test1.js
+
+```javascript
+process.stdout.write('p1:子进程当前工作目录为: ' + process.cwd() + '\r\n')
+process.stdout.write('p1: ' + process.argv[2] + '\r\n')
+```
+
+3.test2.js
+
+```javascript
+let fs = require('fs')
+let path = require('path')
+let out = fs.createWriteS
+```
+
+
+
+#### detached
 
