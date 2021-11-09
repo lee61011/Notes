@@ -279,10 +279,133 @@ process.stdout.write('p1: ' + process.argv[2] + '\r\n')
 ```javascript
 let fs = require('fs')
 let path = require('path')
-let out = fs.createWriteS
+let out = fs.createWriteStream(path.join(__dirname, 'msg.txt'))
+process.stdin.on('data', function(data) {
+    out.write(data)
+})
+process.stdin.on('end', function() {
+    process.exit()
+})
+```
+
+#### detached
+
+- 在默认情况下，只有在子进程全部退出后，父进程才能退出。为了让父进程可以先退出，而让子进程继续进行I/O操作，可以在spawn方法中使用options参数，把detached属性值设置为true
+
+- 默认情况下父进程会等待所有的子进程退出后才可以退出，使用subprocess.unref方法可以让父进程不用等待子进程退出就可以直接退出
+
+  ```javascript
+  let cp = require('child_process')
+  let fs = require('fs')
+  let path = require('path')
+  let out = fs.openSync(path.join(__dirname, 'msg.txt'), 'w', 0o666)
+  let sp = cp.spawn('node', ['4.detached.js'], {
+      detached: true,
+      stdio: ['ignore', out, 'ignore']
+  })
+  sp.unref()
+  ```
+
+```javascript
+let count = 10
+let $timer = setInterval(() => {
+    process.stdout.write(new Date().toString() + '\r\n')
+    if (--count === 0) {
+        clearInterval($timer)
+    }
+}, 500)
+```
+
+### fork开启子进程
+
+- 衍生一个新的 Node.js 进程，并通过建立一个 IPC 通讯通道来调用一个指定的模块，该通道允许父进程与子进程之间相互发送信息
+
+- fork 方法返回一个隐式创建的代表子进程的 ChildProcess 对象
+
+- 子进程的输入/输出操作执行完毕后，子进程不会自动退出，必须使用 `process.exit()`方法显式退出
+
+  ```javascript
+  child_process.fork(modulePath, [args], [options])
+  ```
+
+- args 运行该文件模块文件时需要使用的参数
+
+- options 选项对象
+
+  - cwd 指定子进程当前的工作目录
+  - env 属性值为一个对象，用于以"键名/键值"的形式为子进程指定环境变量
+  - encoding 属性值为一个字符串，用于指定输出及标准错误输出数据的编码格式，默认值为 'utf8'
+  - silent 属性值为布尔值，当属性值为 false 时，子进程和父进程对象共享标准(输入/输出), true时不共享
+
+#### 发送消息
+
+```javascript
+child.send(message, [sendHandle]) // 在父进程中向子进程发送消息
+process.send(message, [sendHandle]) // 在子进程中向主进程发送消息
+```
+
+- message 是一个对象，用于指定需要发送的消息
+
+- sendHandle 是一个 net.Socket 或 net.Server 对象
+
+- 子进程可以监听父进程发送的message事件
+
+  ```javascript
+  process.on('message', function(m, setHandle){})
+  ```
+
+- m 参数值为子进程收到的消息
+
+- sendHandler 为服务器对象或 socket 端口对象
+
+当父进程收到子进程发出的消息时，触发子进程的 message 事件
+
+```javascript
+child.on('message', function(m, setHandle) {
+    // TODO 事件回调函数代码
+})
+```
+
+5.fork.js
+
+```javascript
+let { fork } = require('child_process')
+let path = require('path')
+let child = fork(path.join(__dirname, 'fork.js'))
+child.on('message', function(m) {
+    console.log('父进程接收到消息', m)
+    process.exit()
+})
+child.send({
+    name: 'zs'
+})
+child.on('error', function(err) {
+    console.error(arguments)
+})
+```
+
+fork.js
+
+```javascript
+process.on('message', function(m, setHandle) {
+    console.log('子进程收到消息', m)
+    process.send({
+        
+    })
+})
 ```
 
 
 
-#### detached
+#### silent
+
+#### 子进程与父进程共享HTTP服务器
+
+#### 子进程与父进程共享socket对象
+
+### exec 开启子进程
+
+### execFile 开启子进程
+
+
 
