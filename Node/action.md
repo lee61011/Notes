@@ -26,6 +26,33 @@
 
 ## 多语言切换
 
+可以通过 Accept-Language 检测浏览器的语言
+
+- 请求头格式 Accept-Language: Accept-Language:zh-CN,zh;q=0.9
+- 响应头格式 Content-Language:zh-CN
+
+```javascript
+let http = reqire('http')
+let pack = {
+    en: { title: 'hello' },
+    cn: { title: '欢迎' }
+}
+
+function request(req, res) {
+    // 实现服务器和客户端的协议，选择客户端最想要的，并且服务器刚好有的
+    // Accept-Language:zh-CN,zh;q=0.9;en;q=0.8,jp;q=0,7
+    let acceptLanguage.split(',').map(item => {
+        let values = item.split(';')
+        return {
+            name: values[0].split('-')[0],
+            q: isNaN(values[1]) ? 1 : parseInt(values[1])
+        }
+    }).sort((lan1, lan2) => lan1.q - lan2.q).shift().name
+}
+```
+
+
+
 ## 图片防盗链
 
 ## 代理服务器
