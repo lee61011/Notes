@@ -48,14 +48,72 @@ function request(req, res) {
             q: isNaN(values[1]) ? 1 : parseInt(values[1])
         }
     }).sort((lan1, lan2) => lan1.q - lan2.q).shift().name
+    // TODO
+}
+```
+
+## 图片防盗链
+
+- 从一个网站跳转，或者网页引用到某个资源文件时，HTTP请求中带有Referer表示来源网页的URL
+- 通过检查请求头中的Referer来判断来源网页的域名
+- 如果来源域名不在白名单内，则返回错误提示
+- 用浏览器直接访问图片地址是没有Referer的
+
+```javascript
+let http = require('http')
+let url = require('url')
+let path = require('path')
+let fs = require('fs')
+let root = path.join(__dirname, 'public')
+
+function removePort(host) {
+    return host.split(':')[0]
+}
+function getHostName(urlAddr) {
+    let { host } = url.parse(urlAddr)
+    return removePort(host)
+}
+function request(req, res) {
+    let refer = req.headers['referer'] || req.headers['referrer']
+    if (refer) {
+        
+    }
 }
 ```
 
 
 
-## 图片防盗链
-
 ## 代理服务器
+
+代理(Proxy)，也称网络代理，是一种特殊的网络服务，允许一个网络终端(一般为客户端)通过这个服务与另一个网络终端(一般为服务器)进行非直接的连接。一些网关、路由器等网络设备具备网络代理功能。一般认为代理服务有利于保障网络终端的隐私或安全，防止攻击。
+
+```javascript
+npm install http-proxy --save
+```
+
+- web 代理普通的HTTP请求
+- listen port
+- close 关闭内置的服务
+
+https://www.npmjs.com/package/http-proxy
+
+```javascript
+let httpProxy = require('http-proxy')
+let http = require('http')
+let proxy = httpProxy.createProxyServer()
+
+http.createServer(function(req, res) {
+    proxy,.web(req, res, {
+        target: 'http://localhost:8000'
+    })
+    proxy.on('error', function(err) {
+        console.log('出错了')
+        res.end(err.toString())
+    })
+}).listen(8080)
+```
+
+
 
 ## 虚拟主机
 
