@@ -117,3 +117,33 @@ http.createServer(function(req, res) {
 
 ## 虚拟主机
 
+```javascript
+let http = require('http')
+let proxyServer = require('http-proxy')
+let ps = proxyServer.createProxyServer()
+let config = {
+    "zhangsan.com": "http://localhost:8000",
+    "lisi.com": "http://localhost:9000"
+}
+
+let server = http.createServer(function(req, res) {
+    let host = req.headers['host']
+    let target = config[host]
+    if (target) {
+        ps.web(req, res, { target })
+    } else {
+        res.end(host)
+    }
+}).listen(80)
+// C:\Windows\System32\drivers\etc\host 修改host文件配置访问IP地址
+// 127.0.0.1	zhangsan.com
+// 127.0.0.1	lisi.com
+```
+
+## User-Agent
+
+User Agent中文名为用户代理，简称 UA，它是一个特殊字符串头，使得服务器能够识别客户端使用的操作系统及版本、CPU类型、浏览器及版本、浏览器渲染引擎、浏览器语言、浏览器插件等。
+
+- 请求头 User-Agent: "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.108 Safari/537.36"
+- `user-agent-parser`
+
