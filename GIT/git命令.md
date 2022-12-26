@@ -51,3 +51,14 @@ git diff
 git diff <$id1> <$id2> # 比较两次提交之间的差异
 ```
 
+## GIT 分支
+
+```shell
+git branch -a 				# 查看所有本地和远程分支
+git branch -r				# 仅查看远程分支
+git remote show origin		 # 查看远程与本地分支对应关系
+git remote prune origin		 # 删除远程不存在的分支
+git branch -d xx			 # 删除本地分支
+git push origin --delete xx	  # 删除远程分支
+```
+
