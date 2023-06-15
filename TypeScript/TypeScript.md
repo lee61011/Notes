@@ -1,5 +1,7 @@
 # TypeScript
 
+[中文文档：](https://www.tslang.cn/docs/handbook/basic-types.html)
+
 ## 1. 什么是TypeScript
 
 `TypeScript`是`JavaScript`的超集，遵循最新的`ES5/ES6`规范。`TypeScript`扩展了`JavaScript`语法。

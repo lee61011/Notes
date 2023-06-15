@@ -17,6 +17,9 @@ coverage
 /cypress/videos/
 /cypress/screenshots/
 
+/.obsidian
+/dl.pconline.com.cn
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -29,3 +32,4 @@ coverage
 
 # except for .gitkeep
 !.gitkeep
+.gitignore
