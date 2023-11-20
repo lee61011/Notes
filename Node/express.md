@@ -56,6 +56,22 @@ req.params 匹配到的所有路径参数组成的对象
 
 ## 静态文件服务器
 
+```javascript
+const express = require('express')
+const path = require('path')
+const serveStatic = require('serve-static')
+
+const app = express()
+
+const rootPath = path.join(__dirname, 'public')
+app.use(serveStatic(rootPath))
+app.listen(3000, () => {
+  console.log('http://localhost:3000 started. Location: ' + rootPath)
+})
+```
+
+
+
 ## 重定向
 
 ## 接收 post 响应体
