@@ -244,3 +244,66 @@ export default function* rootSaga() {
 
 
 
+## 9. fork
+
+- 当 loginFlow 在 login 中被阻塞了了最终发生在开始调用和收到响应之间的 LOGOUT 将会被错过
+- 我们需要的是一些非阻塞调用login
+- 为了表示无阻塞调用，redlux-saa 提供了另一个 Efect: fok 当我 fok 一个务，任务会在后台启动，调用者也可以继续它自己的流程，而不用等传被 fork 的任务结束
+
+### 9.1 src/Api.js
+
+```javascript
+export default {
+    login(user) {
+        return new Promise(function(resolve, reject){
+            setTimeout(() => {
+                resolve(user.username)
+            }, 3000)
+        })
+    }
+}
+```
+
+### 9.2 Login.js
+
+```jsx
+// src/components/Login.js
+```
+
+## 10. race
+
+- 有时候我们同时启动多个任务，但又不想等待所有任务完成，我们只希望拿到 胜利者:即第一个被 resolve(或 reiect)的任务
+- race 的另一个有用的功能是，它会自动取消那些失败的 Effects
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
