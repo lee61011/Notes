@@ -72,3 +72,14 @@ git branch -u 'origin/branch name' # 关联远程分支
 git checkout -b 'local branch name' 'origin/ branch name' # 创建本地分支并关联远程分支
 ```
 
+
+
+## 解决git bash终端显示中文乱码
+
+```bash
+# 参考 https://zhuanlan.zhihu.com/p/133706032
+git config --global core.quotepath false
+```
+
+
+
