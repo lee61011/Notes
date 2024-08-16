@@ -194,9 +194,24 @@ app.start('#root');
 
 ## 8. 参考
 
+[DvaJS](https://dvajs.com/)
 
 
 
+## 9.dva-cli
+
+[dva-cli 快速上手](https://dvajs.com/guide/getting-started.html#%E5%AE%89%E8%A3%85-dva-cli)
+[使用 antd](https://dvajs.com/guide/getting-started.html#%E4%BD%BF%E7%94%A8-antd)
+
+```json
+{
+   "extraBabelPlugins": [
+     ["import", { "libraryName": "antd", "libraryDirectory": "es", "style": "css" }]
+   ]
+}
+```
+
+libraryDirectory: es 按需导入的前提必须是es模块 不能是被webpack打包编译后的产物 (antd 组件库中es 和 lib目录中都包含所有的组件)
 
 
 
